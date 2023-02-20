@@ -1,0 +1,529 @@
+如果你只想用抄的，那你遲早會被「類ChatGPT」所取代！！！你必須知道發生什麼事！！！！！
+That is, you must UNDERSTAND it and not just MEMORIZE it.
+
+(IF you just want to memorize and repeat what you have been shown to work,
+ THEN sooner or later, you will be replaced by ChatGPT or the like.
+ But if you know what is actually happening or you can make educated guess
+ about what is actually happening, then there is no way that you'll be replaced.
+)
+
+- 夏延德
+
+
+
+==================================================================================================
+
+Linux shell commands
+
+Shell special characters - Characters with special meaning
+(AKA "shell metacharacters", as are often (but wrongly) called)
+
+暖身 :
+
+  WSs (white spaces) are separators (of tokens).
+  How to remove the special meaning of a WS?
+
+Definition (separator vs. delimiter) :
+
+A separator separates tokens. A separator itself is not a token or part of a token.
+A delimiter also separates tokens. However, a delimiter may be part of a token (maybe itself is a token).
+
+A separator is a delimiter. Not all delimiters are separators.
+
+正事開始：
+
+一、Unconditional special characters (只要出現就算是特殊字元)
+
+Delimiters that terminate basic commands (always a token by itself, even if it is within a string) // command terminators
+  >                    // be careful of >> and <<, where '<<any-string ... ENTERany-string' is "temporary input file"
+  <
+  |                    // be careful of ||
+  ;
+  &                    // be careful of && and &|, where '&|' means both stderr and stdout are piped
+
+Delimiters that separate tokens (it itself is not a token)
+  WS                   // note : ENTER forces the input to be "fed" to the program waiting to read its input
+
+# C program convention : a line that ends with a '\' (followed by ENTER) means what ???
+
+Chars that start/end a command but are not delimiters in the final count
+  `                    // e.g., >>e`echo ch`o 123<<    # this example shows why re-getToken is needed
+
+Delimiters that start/end a command
+  (                    // '(' must be the first of a basic command to be legal
+  )                    // ')' must have a corresponding '(' to be legal
+
+# ((exactly-one-arith-expression)) such as (( a = a + b, b++, a-- )), where 'a' and 'b' are environment variables
+
+二、Conditional special characters (在特定狀況下才算是特殊字元 i.e., has a special meaning only when the char in question is under specific conditions)
+
+1. Has to be without a WS prefix (in order to have a special meaning)
+
+  =str               ; '=' can have a postfix that is a WS AND it is the very first token
+                     ; of a basic command or is following another 'var=value'
+
+2. has to be in the place of a file name or a block (of commands) ; moreover, must have a corresponding '}'
+
+  {
+
+3. Has to have a WS prefix (in order to have a special meaning)
+
+  #                    // except $#, and has to be with a ' ' prefix in order to have a special meaning
+  '~', '.', '..'       // in addition, must also have a postfix that is either '/' or a WS
+                       // ('~' is substituted, while '.' and '..' are not) ; '.' and '..' are hard links in fact (ref. ClassMaterialsFor2022-11-01) and are treated just like any other file names
+
+4. Has to be in the place of a file name (in order to have a special meaning)
+
+  *                    ; match any string of zero or more characters in filenames
+                       ; (however, '*' alone does not match '.someString')
+  ?                    ; match any single character in filenames
+  [                    ; match any single character from ccc in filenames ; must have a corresponding ']'
+                       ; the 'ccc' in '[ccc]' must not include special chars (unless escaped)
+
+  # [ Linux-condition ]     OR     [[ Linux-condition ]]
+  # Usage : [[ Linux-condition ]] ; echo $?
+  # Usage : if [[ Linux-condition ]] ENTER ...
+
+  # Note : when using '*' and/or '?' and/or '[' in a file name, if there is no mathing exiting file-name, the pattern is used literally as the new file name
+  # Example: for the command 'date > test[\ ]a', if there is already a file named 'test a', its content is changed ;
+  #          otherwise, a new file named 'test[ ]a' is created.
+
+  # Note : Only when '[' is within a string and is in the place of file names is it considered to have a special meaning ; in all other cases, '[' is considered a normal character like any letter.
+  #        ('[[' is considered to be the same as '[' as far as a command goes ; but 'te[sx]t' is not considered the same as 'te[[sx]t')
+
+5. Has to have a postfix that is not a WS (in order to have a special meaning)
+
+  '$'  "${"            ; in addition, '${' must also have a corresponding '}' in order to be legal
+
+  # $<num>, $<str> : until the WS behind them
+  # $'C-str'       : represents the-string-in-the-C-sense
+  # $(( exactly-one-arith-expression ))   # Think of it as '(( ... ))' but we want the expression-value and not exit-value
+
+  '!'                  ; start of a history command which should be of the form '!-<num>' or '!<num>'
+
+三、Metacharacters (用以消除特殊字元的「特殊」身分)
+
+  \                    // '\ENTER' df= no char
+  '                    // result is one string
+  "                    // expands '$', '!', '`' within (i.e., 這三個依舊特殊) ; respects '\' ; result is still one string
+
+
+==================================================================================================
+
+Python
+
+>>> import pprint    # the 'PrettyPrint' package
+
+>>> t = (((( 'black', 'cyan' ), 'white', (  'green', 'red' )), (( 'magenta', 'yellow' ), 'blue' )))
+
+>>> t   # Notice how a Python printout uses SPACEs
+((('black', 'cyan'), 'white', ('green', 'red')), (('magenta', 'yellow'), 'blue'))
+
+>>> pprint.pprint( t, width = 30, indent = 2 )
+( ( ('black', 'cyan'),
+    'white',
+    ('green', 'red')),
+  ( ('magenta', 'yellow'),
+    'blue'))
+
+# vs.    # Do you see a bug in the above?
+
+( ( ( ( 'black',
+        'cyan'
+      ),
+      'white',
+      ( 'green',
+        'red'
+      )
+    ),
+    ( ( 'magenta',
+        'yellow'
+      ),
+      'blue'
+    )
+  )
+)
+
+# vs.
+
+( ( ( ( 'black', 'cyan' ),
+      'white',
+      ( 'green', 'red' )
+    ),
+    ( ( 'magenta', 'yellow' ),
+      'blue'
+    )
+  )
+)
+
+# ---------------
+
+>>> t = (((( 'black', 'cyan' ), 'white', (  'green', 'red' )), (( 'magenta', 'yellow' ), 'blue' )),)
+
+>>> pprint.pprint( t, width = 30, indent = 2 )
+
+( ( ( ('black', 'cyan'),
+      'white',
+      ('green', 'red')),
+    ( ('magenta', 'yellow'),
+      'blue')),)
+
+# vs.
+
+( ( ( ( 'black', 'cyan' ),
+      'white',
+      ( 'green', 'red' )
+    ),
+    ( ( 'magenta', 'yellow' ),
+      'blue'
+    )
+  )
+  ,
+)
+
+# vs.
+
+( ( ( ( 'black' 'cyan' )
+      'white'
+      ( 'green' 'red' )
+    )
+    ( ( 'magenta' 'yellow' )
+      'blue'
+    )
+  )
+)
+
+---------------------------------------------------------------------------------
+
+Regarding Lisp-styled lists ("tuples"), with the addition of a mutable version ("lists")
+
+tuples ( Lisp styled lists - immutable )
+https://www.tutorialsteacher.com/python/python-tuple
+
+# ( append t1 t2 )  # OurScheme
+
+>>> t1 = ( 1,2,3 )
+>>> t2 = ( 4,5,6 )
+>>> t1 + t2
+(1, 2, 3, 4, 5, 6)
+>>> t2 + ( 7, )     # why is it the case that a one-element tuple has to be expressed as >>(7,)<< whereas a one-element list can be just as >>[7]<< ?
+(4, 5, 6, 7)
+
+# ( Nth n t1 ) ### a generalization of 'car' of OurScheme ### ( car t1 ) df= ( Nth 1 t1 )
+
+>>> t1 = ( 1,2,3,4,5,6 )
+>>> t1[ 3 ]         # ( Nth 3 t1 )
+4
+>>> t1[-2]          # Hmmmm.... (有點麻煩)  ### ( Nth (- (length t1) 1 ) t1 )
+5
+
+# ( Part start end t1 ) ### generalized 'cdr' of OurScheme
+# however, notice the difference between 'Part' and 'RemaingPart' ('cdr' is the latter)
+# ( cdr t1 ) df= ( RemainingPart 2 t1 ) ### For Python, this is ??? i.e., t1[ ????? ]
+
+>>> t1 = ( 1,2,3,4,5,6 )
+>>> t1[ 1 : 3 ]
+(2, 3)
+>>> t1[ 3 : ]
+(4, 5, 6)
+>>> t1[ : 3 ]
+(1, 2, 3)
+
+# ( cons ( car a ) b )
+
+>>> print(a)
+((1, 2), 3, 4)
+>>> print(b)
+(5, 6, 7)
+>>> c = a[ 0 : 1 ] + b     # 這事實上是append而不是cons，But ... (隨便啦！) # Python沒有cons的counterpart ### ( cons <elt> <list> )
+>>> print(c)
+((1, 2), 5, 6, 7)
+
+# ( cons ( Nth 3 a ) b )   # generalized '( cons (car a ) b )'
+
+>>> d = a[ 2 : ] + b
+>>> print(d)
+(4, 5, 6, 7)
+
+# Values of 'a' and 'b' and 'c' remain unchanged (since 'a' 'b' 'c' 'd' are just NAMES OF VALUES and a list (in OurScheme) is a value)
+
+>>> print(a)
+((1, 2), 3, 4)
+>>> print(b)
+(5, 6, 7)
+>>> print(c)
+((1, 2), 5, 6, 7)
+
+重點：value vs. name-of-a-value
+
+# Anyone who implements OurScheme would know how this (i.e., OurScheme-list, AKA Python-tuple) is implemented!
+
+# 'in' and 'not in' # ( ElementOf a t1 )
+
+>>> t1 = ( 1,2,3,4,5,6 )
+>>> 5 in t1
+True
+>>> 10 in t1
+False
+>>> 4 not in t1
+False
+>>> 10 not in t1
+True
+
+# ( define a '( 1,2,3,4,5,6,7 ) )
+
+>>> a = ( 1,2,3,4,5,6,7 )
+
+# ( define b
+#          ( append
+#            ( append
+#              ( Part 1 3 a )         # OR : ( list ( car a ) ( car ( cdr a ) ) )
+#              ( list 30 )
+#            )
+#            ( RemainingPart 4 a )    # OR : ( cdr ( cdr ( cdr a ) ) )
+#          )
+# )
+
+>>> b = a[ 0 : 2 ] + ( 30, ) + a[ 3 : ]    # >>(30)<< is just >>30<< (and '(' and ')' are just paren.) ; >>(30,)<< is the list >>(30)<<
+
+>>> b
+(1, 2, 30, 4, 5, 6, 7)
+
+>>> c = ( 'a','b','c','d','e' )
+
+>>> d = a[ 0 : 2 ] + ( c, ) + a[ 3 : ]
+
+>>> d
+(1, 2, ('a', 'b', 'c', 'd', 'e'), 4, 5, 6, 7)
+
+>>> a    # 'a' is still the name of the same value
+(1, 2, 3, 4, 5, 6, 7)
+
+>>> c    # 'c' is still the name of the same value
+('a', 'b', 'c', 'd', 'e')
+
+# ( eval '( Nth 1 a ) )  # ( eval '( car a ) )    <------ 注意eval
+
+>>> eval( c[0] )   # a
+(1, 2, 3, 4, 5, 6, 7)
+
+>>> eval( c[1] )   # b
+(1, 2, 30, 4, 5, 6, 7)
+
+>>> eval( c[2] )   # c
+('a', 'b', 'c', 'd', 'e')
+
+>>> eval( c[3] )   # d
+(1, 2, ('a', 'b', 'c', 'd', 'e'), 4, 5, 6, 7)
+
+>>> e = d + d
+>>> e
+(1, 2, ('a', 'b', 'c', 'd', 'e'), 4, 5, 6, 7, 1, 2, ('a', 'b', 'c', 'd', 'e'), 4, 5, 6, 7)
+
+>>> d    # 'd' is still the name of the same value
+(1, 2, ('a', 'b', 'c', 'd', 'e'), 4, 5, 6, 7)
+
+>>> eval( c[4] )   # e
+(1, 2, ('a', 'b', 'c', 'd', 'e'), 4, 5, 6, 7, 1, 2, ('a', 'b', 'c', 'd', 'e'), 4, 5, 6, 7)
+
+重點：value and name (of a value)
+
+---------------------------------------------------------------------
+
+In theory, tuples (Lisp-styled lists) are all we need.
+Lists (imperative-language-styled lists) are probably for execution efficiency ...
+
+Python-tuples are for functional-language-styled thinking.
+Python-lists are for imperative-language-styled thinking.
+
+---------------------------------------------------------------------
+
+lists (mutable Lisp styled lists)
+https://www.tutorialsteacher.com/python/python-list
+
+# same as tuples, with '(' and ')' replaced by '[' and ']'
+
+# but with the following additions
+
+>>> list1.append( newElement )
+>>> list1.insert( index, newElement )
+>>> list1[ index ] = newElement
+>>> del list1[ index ]    # question about list1.remove[ existingElement ]
+>>> del list1
+>>> list1.pop()           # remove the last one
+>>> list1.pop(0)          # the 'pop' we know
+>>> list1.pop( i )        # remove( index )
+
+list.append() # Add one new item to the end
+list.extend() # Adds all the items of the specified iterable (list, tuple,
+              # set, dictionary, string) to the end of the list.
+list.clear()
+list.copy()
+list.count()
+list.index()
+list.insert()
+list.pop()
+list.remove()
+list.reverse()
+list.sort()
+
+重點：value of a variable
+
+Q : a = b
+
+>>> a1 = [ 1,2,3,4,5 ]
+>>> a1
+[1, 2, 3, 4, 5]
+
+>>> b1 = a1
+>>> b1
+[1, 2, 3, 4, 5]
+
+>>> a1[3] = 10
+>>> a1
+[1, 2, 3, 10, 5]
+
+>>> b1
+[1, 2, 3, 10, 5]       # <---------- Look here
+
+>>> b1 = b1 + [ 'a', 'b', 'c' ]
+>>> b1
+[1, 2, 3, 10, 5, 'a', 'b', 'c']
+
+>>> a1
+[1, 2, 3, 10, 5]
+
+>>> a1[3] = 200
+>>> a1
+[1, 2, 3, 200, 5]
+
+>>> b1
+[1, 2, 3, 10, 5, 'a', 'b', 'c']  # <---------- Look again
+
+==================================================================================================
+
+Shell scripts of Linux
+
+# 'if'與'while'的條件判斷式事實上可以是任何compound command
+
+if (( 5 > 4 ))   # OR : if [[ -f temp.txt ]]  # OR : if date  # OR : if { date ; }
+then
+  echo Hi
+  echo $$
+fi
+
+if (( 5>4 ))
+then
+  echo Hi
+  echo $$
+else
+  echo Hello
+  echo $$
+fi
+
+if (( 5>4 ))
+then
+  echo Hi
+  echo $$
+elif (( 4 > 5 ))
+then
+  echo why
+else
+  echo Hello
+  echo $$
+fi
+
+if date
+then
+  echo Hi
+  echo $$
+else
+  echo Hello
+fi
+
+if date ; date | cat
+then
+  echo Hi
+  echo $$
+else
+  echo Hello
+fi
+
+----------------------------------------------------------------------
+
+(( i = 1 ))          # 也可以是： i=1
+while (( i < 5 ))	   # 也可以是： (( $i < 5 ))
+do
+  (( i = i + 1 ))    # 也可以是： i=$(( $i + 1 ))
+  echo ${i}Hello
+done
+
+-------------------------------------------------------------------
+
+wang > function Recurse() {
+> if [[ $1 > 0 ]]
+> then
+>   echo Value of ar is $1
+>   Recurse $(( $1 - 1 ))
+> else
+>   echo Value of arg is $1. No more recursion performed.
+> fi
+> } # Recurse()
+
+wang > Recurse 3
+Value of ar is 3
+Value of ar is 2
+Value of ar is 1
+Value of arg is 0. No more recursion performed.
+
+------------------------------------------------------------------
+
+$ Relating PL project to how shell works (First choice : Our-C ; Second choice : OurScheme)
+
+   # A comparison between how-Our-C-works and how-shell-works
+
+   ＃ shell
+
+   > abc=15    # Why can't it be >>abc = 15<< ???
+   > echo $abc
+   > echo $(( $abc * 2 ))
+   > echo $(( $abc + $abc ))
+   > echo $(( 2 * $(( $abc + $abc )) ))
+   > echo $(( $(( 2 * $(( $abc + $abc )) )) * $(( 2 * $(( $abc + $abc )) )) ))
+
+   ＃ Our-C
+
+   > int abc ;                            # Definition of abc entered ...
+   > abc = 15 ;                           # Statement executed ...
+   > cout << abc ;                        # 15Statement executed ...
+   > cout << abc * 2 ;                    # 30Statement executed ...
+
+   ＃ shell
+
+   > MyEcho() {
+   $   echo $(( $abc * 2 ))
+   $ } # MyEcho()
+   > MyEcho
+   30
+   > MyDouble() {
+   $   echo $(( $1 * 2 ))
+   $ } # MyDouble()
+   > MyDouble $abc
+   30
+
+   ＃ Our-C
+
+   > int F( int y ) { return y + y ; }    # Definition of F() entered ...
+   > cout << F(abc) ;                     # 30Statement executed ...
+   > Done() ;                             # Our-C exited ...
+
+   ＃ More of shell
+
+   > MyDate() { date; date; }     # King of kings！ (a program that uses other programs as commands)
+   > MyDate                       # can use TAB to expand
+
+   > MyDateAgain() {
+   $ date
+   $ date
+   $ } # MyDateAgain()
+   > MyDateAgain                  # can use TAB to expand
