@@ -1,0 +1,3 @@
+Q1:合法的instruction format
+Q2:如何運算指令?Intermediate code? parsing tree?
+Q3:
