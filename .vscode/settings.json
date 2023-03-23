@@ -29,7 +29,7 @@
         "new": "cpp",
         "typeinfo": "cpp",
         "cstddef": "cpp",
-        "stdexcept": "cpp"
+        "stdexcept": "cpp",
     },
     "C_Cpp.errorSquiggles": "Disabled",
     "python.pythonPath": "D:\\python\\python.exe"
