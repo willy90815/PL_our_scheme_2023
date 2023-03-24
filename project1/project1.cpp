@@ -36,11 +36,46 @@ class Cutter {
   static int code_column ;
   static int code_line ;
   bool is_digit(char ch){
-
+    if ( '0'<= ch && ch <='9'){
+      return true;
+    }
+    return false;
   }
 
   bool is_letter(char ch){
+    if( 'a' <= ch && ch <= 'z'){
+      return true;
+    }
+
+    if ( 'A' <= ch && ch <='Z'){
+      return true;
+    }
+    return false;
     
+  }
+
+  bool is_white_space(char ch){
+    if(ch == ' ' || ch == '\t' || ch == '\n'){
+      return true;
+    }
+  }
+
+  bool is_delimiter(char ch){
+    if (ch == '+'||ch == '-' || ch == '*'){
+      return true;
+    }
+
+    if( ch == '/'||ch == '='||ch =='<'){
+      return true;
+    }
+    if(ch=='>'|| ch =='\\' || ch == '&'){
+      return true;
+    }
+    if(ch =='('||ch == ')'){
+      return true;
+    }
+
+    return false;
   }
 
 
@@ -74,21 +109,43 @@ class Cutter {
   } // start_with_right_paren()
 
   bool start_with_digit( char ch, tn_ptr & token_segement ) {
-    if ( ch <= '0' && '9' <= ch ) {
+    if ( !is_digit( ch ) ) {
       return false ;
     } // if
-
+    int loc_column = code_column ;
     string temp_str ;
     temp_str.append( & ch ) ;
-    while ( '0' <= ch && ch <= '9' ) {
+
+    while ( is_digit( ch ) ) {
       ch = getch() ;
       temp_str.append( & ch ) ;
     } // while
-
-    if ( ch != '.' ) {
+    if( is_white_space(ch) || is_delimiter(ch)){
       token_segement = new token_node ;
       token_segement -> token = temp_str ;
       token_segement -> token_type = INT ;
+      token_segement -> line = code_line ;
+      token_segement -> column = loc_column ;
+      token_segement -> next = NULL ;
+      if(is_delimiter(ch)){
+        code_column -= 1 ;
+      }
+      return true ;
+    }
+    if ( ch == '.' ) {
+      token_segement = new token_node ;
+      
+      token_segement -> token_type = SYMBOL ;
+      token_segement -> line = code_line ;
+      token_segement -> column = code_column ;
+      token_segement -> next = NULL ;
+      code_column -= 1 ;
+      return true ;
+    } // if
+    if ( ch != '.' ) {
+      token_segement = new token_node ;
+      
+      token_segement -> token_type = SYMBOL ;
       token_segement -> line = code_line ;
       token_segement -> column = code_column ;
       token_segement -> next = NULL ;
@@ -96,7 +153,7 @@ class Cutter {
       return true ;
     } // if
 
-    return false ;
+    
   } // start_with_digit()
 
   bool start_with_letter( char ch, tn_ptr & token_segement ) {
