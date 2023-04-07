@@ -433,10 +433,6 @@ class Cutter {
   } // start_with_other_sign()
 
 
-  public :
-  void set_source_ins( char * source_ins ) {
-    this -> source_ins = source_ins ;
-  } // set_source_ins()
 
   char getch() {
     code_column += 1 ;
@@ -458,27 +454,6 @@ class Cutter {
 
     return walk ;
   } // walk_to_last()
-
-  tn_ptr generate_list() {
-    tn_ptr result_head = NULL ;
-    tn_ptr walker = gnerate_token_node() ;
-    if( walker != NULL ){
-      walker -> next = NULL ;
-      walker->second_level = NULL;
-    }
-    
-    result_head = walker ;
-    while ( source_ins[ code_column ] != '\0' ) {
-      walker -> next = gnerate_token_node() ;
-      walker = walker -> next ;
-      if( walker != NULL ){
-        walker -> next = NULL ;
-        walker->second_level = NULL;
-      }
-    } // while
-    return result_head ;
-  } // generate_list()
-
   tn_ptr gnerate_token_node() {
     tn_ptr return_list = NULL ;
     char ch = skip_white_space( getch() ) ;
@@ -515,6 +490,33 @@ class Cutter {
     return return_list ;
   } // gnerate_token_node()
 
+  public :
+  tn_ptr get_token_line() {
+    // should I free or delete privious pointer source_ins 
+    source_ins = new char[256];
+    cin.getline( source_ins,256 );
+    code_column = 0;
+    tn_ptr result_head = NULL ;
+    tn_ptr walker = gnerate_token_node() ;
+    if( walker != NULL ){
+      walker -> next = NULL ;
+      walker->second_level = NULL;
+    }
+    
+    result_head = walker ;
+    while ( source_ins[ code_column ] != '\0' ) {
+      walker -> next = gnerate_token_node() ;
+      walker = walker -> next ;
+      if( walker != NULL ){
+        walker -> next = NULL ;
+        walker->second_level = NULL;
+      }
+    } // while
+    return result_head ;
+  } // generate_list()
+
+
+
   void test_print( tn_ptr head ) {
     tn_ptr walk = head ;
     cout << setw( 7 ) << "line" << setw( 7 ) << "column" << setw( 10 ) << "token" ;
@@ -545,6 +547,7 @@ class Syntax_processor {
 
 class Analyzer : Syntax_processor {
   private:
+  Cutter cut;
   tn_ptr token_list;
   tn_ptr seq_index;
   stack<token_node> l_paren_stack;
@@ -558,6 +561,11 @@ class Analyzer : Syntax_processor {
     // ( 1 . ( ( 2 . 3 ) . 4  )
     // when should nil be showed
     // without '(' ')' did not finish
+    if(seq_index == NULL ){
+      seq_index = cut.get_token_line();
+      cut.test_print( seq_index ) ;
+    }
+
     tn_ptr builder = seq_index;
     tn_ptr s_exp_head = builder;
     int dot_count = 0;
@@ -636,16 +644,25 @@ class Analyzer : Syntax_processor {
     this->seq_index = NULL;
     this->token_list = NULL;
     this->first_left_paren_index = 0;
+    this->cut = Cutter();
   }
-  tn_ptr build_and_syntax_detecct(tn_ptr token_list){
-    this->token_list = token_list;
-    seq_index = this->token_list;
+  void clear(){
+    this->ins_tree= NULL;
+    this->seq_index = NULL;
+    this->token_list = NULL;
+    this->first_left_paren_index = 0;
+  }
+
+  tn_ptr build_ins_tree(){
     return build_s_expression();
   }
-  bool tree_is_no_complete(){
+  bool tree_is_complete(){
     return false;
   }
-  bool input_ins_is_not_empty(){
+  bool token_list_is_empty(){
+    if( seq_index == NULL ){
+      return true;
+    }
     return false;
   }
 
@@ -697,15 +714,27 @@ int main() {
   tn_ptr head;
   Cutter cut = Cutter() ;
   Analyzer anal = Analyzer() ;
-  // instruction cross line will occur segmentation fault
-  char test_str[ 256 ] = {} ;
-  cin.getline(test_str,256);
-  cut.set_source_ins( test_str ) ;
-  cut.test_print( head = cut.generate_list() ) ;
-  anal.print_tree_struct(anal.build_and_syntax_detecct(head),0);
-
+  // instruction cross line will occur segmentation fault 
+  while(1){
+    anal.print_tree_struct(anal.build_ins_tree(),0);
+    anal.clear();
+  }
+  
+  return 0;
   while(0){
-    
+
+
+
+    if(anal.token_list_is_empty()){
+      while(!anal.tree_is_complete()){
+        head = anal.build_ins_tree();
+      }
+      anal.print_tree_struct(head,0);
+    }
+    else{
+      anal.print_tree_struct(anal.build_ins_tree(),0);
+    }
+    //one iteration generate one complete ins tree
   }
   
 } // main()
