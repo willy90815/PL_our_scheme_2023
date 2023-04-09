@@ -140,6 +140,16 @@ private:
     return false;
   } // is_quote()
 
+  bool is_comment(char ch)
+  {
+    if (ch == ';')
+    {
+      return true;
+    }
+
+    return false;
+  }
+
   bool start_with_left_paren(char ch, tn_ptr &token_segement)
   {
     if (ch == '(')
@@ -148,7 +158,7 @@ private:
       token_segement->token = "(";
       token_segement->token_type = LEFT_PAREN;
       token_segement->line = code_line;
-      token_segement->column = code_column;
+      token_segement->column = code_column + 1;
       token_segement->second_level = NULL;
       token_segement->next = NULL;
 
@@ -177,7 +187,7 @@ private:
       token_segement->token = ")";
       token_segement->token_type = RIGHT_PAREN;
       token_segement->line = code_line;
-      token_segement->column = code_column;
+      token_segement->column = code_column + 1;
       token_segement->second_level = NULL;
       token_segement->next = NULL;
       return true;
@@ -199,7 +209,7 @@ private:
     temp_str += ch;
     token_segement = new token_node;
     token_segement->line = code_line;
-    token_segement->column = code_column;
+    token_segement->column = code_column + 1;
     token_segement->second_level = NULL;
     token_segement->next = NULL;
     while (is_digit(ch = getch()))
@@ -207,15 +217,20 @@ private:
       temp_str += ch;
     } // while
 
-    if (is_white_space(ch) || is_delimiter(ch) || is_end_of_line(ch))
+    if (is_white_space(ch) || is_delimiter(ch) || is_end_of_line(ch) || is_comment(ch))
     {
 
       token_segement->token = temp_str;
       token_segement->token_type = INT;
-      if (is_delimiter(ch)||is_end_of_line(ch))
+      if (is_delimiter(ch) || is_end_of_line(ch))
       {
         code_column -= 1;
       } // if
+
+      if (is_comment(ch))
+      {
+        skip_comment(ch);
+      }
 
       return true;
     } // if
@@ -229,26 +244,41 @@ private:
         temp_str += ch;
       } // while getch before condiction
       token_segement->token_type = FLOAT;
-      if (is_white_space(ch) || is_delimiter(ch) || is_end_of_line(ch))
+      if (is_white_space(ch) || is_delimiter(ch) || is_end_of_line(ch) || is_comment(ch))
       {
-        token_segement->token = temp_str;
+        int dot_index = to_string(stof(temp_str)).find_first_of(".", 0);
+        token_segement->token = to_string(stof(temp_str)).substr(0, dot_index + 4);
+        if (is_delimiter(ch) || is_end_of_line(ch))
+        {
+          code_column -= 1;
+        } // if
+
+        if (is_comment(ch))
+        {
+          skip_comment(ch);
+        }
+
         return true;
       } // if
 
     } // if
-    else if (!is_white_space(ch) && !is_delimiter(ch) && !is_end_of_line(ch))
+    else if (!is_white_space(ch) && !is_delimiter(ch) && !is_end_of_line(ch) && !is_comment(ch))
     {
       temp_str += ch;
-      while (!is_white_space(ch = getch()) && !is_delimiter(ch) && !is_end_of_line(ch))
+      while (!is_white_space(ch = getch()) && !is_delimiter(ch) && !is_end_of_line(ch) && !is_comment(ch))
       {
         temp_str += ch;
 
       } // while
 
-      if (is_delimiter(ch)||is_end_of_line(ch))
+      if (is_delimiter(ch) || is_end_of_line(ch))
       {
         code_column -= 1;
       } // if
+      if (is_comment(ch))
+      {
+        skip_comment(ch);
+      }
 
       token_segement->token = temp_str;
       token_segement->token_type = SYMBOL;
@@ -261,7 +291,7 @@ private:
       temp_str += ch;
     } // while
 
-    if (is_delimiter(ch)||is_end_of_line(ch))
+    if (is_delimiter(ch) || is_end_of_line(ch))
     {
       code_column -= 1;
     } // if
@@ -283,7 +313,7 @@ private:
     token_segement = new token_node;
     token_segement->token_type = SYMBOL;
     token_segement->line = code_line;
-    token_segement->column = code_column;
+    token_segement->column = code_column + 1;
     token_segement->next = NULL;
     token_segement->second_level = NULL;
     while (!(is_delimiter(ch) || is_white_space(ch) || is_end_of_line(ch)))
@@ -293,11 +323,14 @@ private:
     } // while
 
     token_segement->token = temp_str;
-    if (is_delimiter(ch)||is_end_of_line(ch))
+    if (is_delimiter(ch) || is_end_of_line(ch))
     {
       code_column -= 1;
     } // if
-
+    if (is_comment(ch))
+    {
+      skip_comment(ch);
+    }
     if (token_segement->token.compare("nil") == 0)
     {
       token_segement->token_type = NIL;
@@ -328,19 +361,23 @@ private:
 
     token_segement = new token_node;
     token_segement->line = code_line;
-    token_segement->column = code_column;
+    token_segement->column = code_column + 1;
     token_segement->next = NULL;
     token_segement->second_level = NULL;
     temp_str += ch;
-    if (is_white_space(ch = getch()) || is_delimiter(ch) || is_end_of_line(ch))
+    if (is_white_space(ch = getch()) || is_delimiter(ch) || is_end_of_line(ch) || is_comment(ch))
     {
       token_segement->token = temp_str;
       token_segement->token_type = DOT;
-      if (is_delimiter(ch)||is_end_of_line(ch))
+      if (is_delimiter(ch) || is_end_of_line(ch))
       {
         code_column -= 1;
       } // if
 
+      if (is_comment(ch))
+      {
+        skip_comment(ch);
+      }
       return true;
     } // if
 
@@ -350,14 +387,19 @@ private:
       ch = getch();
     } // while
 
-    if (is_white_space(ch) || is_delimiter(ch) || is_end_of_line(ch))
+    if (is_white_space(ch) || is_delimiter(ch) || is_end_of_line(ch) || is_comment(ch))
     {
-      token_segement->token = temp_str;
+      int dot_index = to_string(stof(temp_str)).find_first_of(".", 0);
+      token_segement->token = to_string(stof(temp_str)).substr(0, dot_index + 4);
       token_segement->token_type = FLOAT;
-      if (is_delimiter(ch)||is_end_of_line(ch))
+      if (is_delimiter(ch) || is_end_of_line(ch))
       {
         code_column -= 1;
       } // if
+      if (is_comment(ch))
+      {
+        skip_comment(ch);
+      }
 
       return true;
     } // if
@@ -372,10 +414,14 @@ private:
     token_segement->token_type = SYMBOL;
     token_segement->next = NULL;
     token_segement->second_level = NULL;
-    if (is_delimiter(ch)||is_end_of_line(ch))
+    if (is_delimiter(ch) || is_end_of_line(ch))
     {
       code_column -= 1;
     } // if
+    if (is_comment(ch))
+    {
+      skip_comment(ch);
+    }
 
     return true;
   }
@@ -397,7 +443,7 @@ private:
 
     token_segement = new token_node;
     token_segement->line = code_line;
-    token_segement->column = code_column;
+    token_segement->column = code_column + 1;
     token_segement->next = NULL;
     token_segement->second_level = NULL;
     temp_str += ch;
@@ -411,7 +457,7 @@ private:
       else
       {
         ch = getch();
-        if (ch == 'n' || ch == 't' || ch == '\\' || ch == '\'' || ch == '\"')
+        if (ch == 'n')
         {
           temp_str += '\n';
         }
@@ -451,7 +497,7 @@ private:
     string temp_str = "";
     token_segement = new token_node;
     token_segement->line = code_line;
-    token_segement->column = code_column;
+    token_segement->column = code_column + 1;
     token_segement->next = NULL;
     token_segement->second_level = NULL;
     if (ch == '#')
@@ -469,9 +515,11 @@ private:
         token_segement->token_type = NIL;
         token_segement->token = "nil";
       }
-      else if (is_white_space(ch) || is_delimiter(ch) || is_end_of_line(ch))
+      else if (is_white_space(ch) || is_delimiter(ch) || is_end_of_line(ch) || is_comment(ch))
       {
-        ; // maybe we should throw an exception;
+        token_segement->token_type = SYMBOL;
+        token_segement->token = "#"; // maybe we should throw an error here?;
+        // try to be symbol
       }
       else
       {
@@ -481,30 +529,74 @@ private:
       }
 
       temp_str += ch;
-      while (!(is_white_space(ch = getch()) || is_delimiter(ch) || is_end_of_line(ch)))
+      while (!(is_white_space(ch = getch()) || is_delimiter(ch) || is_end_of_line(ch) || is_comment(ch)))
       {
         temp_str += ch;
+        token_segement->token = temp_str;
+        token_segement->token_type = SYMBOL;
       }
-      token_segement->token = temp_str;
-      token_segement->token_type = SYMBOL;
-      if (is_delimiter(ch)||is_end_of_line(ch))
+
+      if (is_delimiter(ch) || is_end_of_line(ch))
       {
         code_column -= 1;
       }
+      if (is_comment(ch))
+      {
+        skip_comment(ch);
+      }
       return true;
     } // start with #
-
-    if (ch == ';')
+    if (ch == '+' || ch == '-')
     {
-      while (!is_end_of_line(ch))
+      int temp_index = code_column;
+      tn_ptr temp = NULL;
+      start_with_digit(getch(), temp);
+      if (temp->token_type == INT || temp->token_type == FLOAT)
       {
-        ch = getch();
+        if (ch == '-')
+        {
+          temp->token.insert(0, 1, ch);
+        }
+        token_segement = temp;
+        return true;
       }
+      code_column = temp_index;
+      start_with_dot(getch(), temp);
+      if (temp->token_type == FLOAT)
+      {
+        if (ch == '-')
+        {
+          temp->token.insert(0, 1, ch);
+        }
+        token_segement = temp;
+        return true;
+      }
+      code_column = temp_index;
+    }
+    if (is_comment(ch))
+    {
+      skip_comment(ch);
       token_segement = NULL;
       return true;
     }
 
-    return false; ///////////////////////////////////
+    temp_str += ch;
+    token_segement->token_type = SYMBOL;
+    while (!(is_white_space(ch = getch()) || is_delimiter(ch) || is_end_of_line(ch) || is_comment(ch)))
+    {
+      temp_str += ch;
+    }
+    if (is_delimiter(ch) || is_end_of_line(ch))
+    {
+      code_column -= 1;
+    }
+    if (is_comment(ch))
+    {
+      skip_comment(ch);
+    }
+
+    token_segement->token = temp_str;
+    return true; ///////////////////////////////////
   }               // start_with_other_sign()
 
   char getch()
@@ -523,6 +615,14 @@ private:
     return ch;
   } // skip_white_space()
 
+  void skip_comment(char ch)
+  {
+    while (!is_end_of_line(ch))
+    {
+      ch = getch();
+    }
+  }
+
   tn_ptr walk_to_last(tn_ptr walk)
   {
     while (walk->next != NULL)
@@ -532,6 +632,7 @@ private:
 
     return walk;
   } // walk_to_last()
+
   tn_ptr gnerate_token_node()
   {
     tn_ptr return_list = NULL;
@@ -581,6 +682,7 @@ public:
   tn_ptr get_token_line()
   {
     // should I free or delete privious pointer source_ins
+    code_line++;
     code_column = -1;
     source_ins = new char[256];
     cin.getline(source_ins, 256);
@@ -603,7 +705,6 @@ public:
         walker->second_level = NULL;
       }
     } // while
-    code_line++;
     return result_head;
   } // generate_list()
 
@@ -619,24 +720,28 @@ public:
       walk = walk->next;
     } // while
   }   // test_print()
-
-  void clear(){
+  void set_code_line(int line)
+  {
+    code_line = line;
+  }
+  void clear()
+  {
     source_ins = NULL;
-    code_column = -1;
+    code_column = 1;
     code_line = 0;
     error_string = "";
   }
-  Cutter(){
+  Cutter()
+  {
     source_ins = NULL;
-    code_column = -1;
+    code_column = 1;
     code_line = 0;
     error_string = "";
   }
-
 };
 
 int Cutter::code_line = 0;
-int Cutter::code_column = 0;
+int Cutter::code_column = 1;
 
 class Syntax_processor
 {
@@ -663,8 +768,15 @@ private:
   string error_string;
   stack<token_node> l_paren_stack;
   int first_left_paren_index;
+  int last_column;
   bool tree_complete;
+  tn_ptr find_previous(tn_ptr head, tn_ptr tail)
+  {
+    while (head != NULL && head->next != tail)
+      head = head->next;
 
+    return head;
+  }
   tn_ptr build_s_expression()
   {
     // 4 situation
@@ -674,29 +786,35 @@ private:
     // ( 1 . ( ( 2 . 3 ) . 4  )
     // when should nil be showed
     // without '(' ')' did not finish
-    if (seq_index == NULL)
+ 
+
+   
+    // builder->next should always be seq_index
+    int dot_count = 0;
+    while (seq_index == NULL)
     {
       seq_index = cut.get_token_line();
-      cut.test_print(seq_index);
-    }
-
+      // cut.test_print(seq_index);
+    } 
     tn_ptr builder = seq_index;
     tn_ptr s_exp_head = builder;
-    int dot_count = 0;
-    if (seq_index == NULL)
-    {
-      return NULL;
-    }
-
-
     if (seq_index->token_type == DOT)
     {
-      if (builder->token_type == DOT)
-        ; // error occur
+      error_string = "ERROR (unexpected token) : atom or '(' expected when token at Line " + to_string(builder->line) + " Column " + to_string(builder->column) + " is >>.<<\n";
+      throw(error_string); // error occur
+
     }
 
-    while (seq_index != NULL)
+    while (1)
     {
+      while (seq_index == NULL)
+      {
+        seq_index = cut.get_token_line();
+        if(builder->next == NULL){
+          builder->next = seq_index;
+        }
+        // cut.test_print(seq_index);
+      }
       if (seq_index->token_type == LEFT_PAREN)
       {
         builder = seq_index;
@@ -706,18 +824,25 @@ private:
         first_left_paren_index = l_paren_stack.top().column;
         l_paren_stack.pop();
         builder->next = seq_index;
-        if (seq_index == NULL)
+        if (find_previous(builder->second_level, seq_index) != NULL)
         {
+          find_previous(builder->second_level, seq_index)->next = NULL;
+        }
+        builder = seq_index;
+        seq_index = seq_index->next;
+        if (l_paren_stack.empty())
+        {
+          builder->next = NULL;
+          last_column = builder->column;
           return s_exp_head;
         }
       }
       else if (seq_index->token_type == RIGHT_PAREN)
-      { // may not be happen because recursion won't go here
-        builder->next = NULL;
+      {
         if (l_paren_stack.empty())
-        {
+        { // may not be happen because recursion won't go here
           error_string = "ERROR (unexpected token) : atom or '(' expected when token at Line ";
-          error_string = error_string +to_string(seq_index->line) + " Column "+ to_string(seq_index->column-builder->column)+ " is >>)<<\n"; // error occur
+          error_string = error_string + to_string(seq_index->line) + " Column " + to_string(seq_index->column - builder->column) + " is >>)<<\n"; // error occur
           throw(error_string);
         }
 
@@ -725,43 +850,79 @@ private:
       }
       else if (seq_index->token_type == DOT)
       {
-        if (builder->token_type == DOT)
+        while (seq_index->next == NULL)
         {
-          ; // error occur DOT is first token in s_expression
+          seq_index->next = cut.get_token_line();
+          // cut.test_print(seq_index->next);
+          ; //? should be an error?
+          // NO we should get next token line
+        }
+        dot_count++;
+        if (dot_count > 1)
+        {
+          error_string = "ERROR (unexpected token) : ')' expected when token at Line ";
+          error_string = error_string + to_string(seq_index->line) + " Column " + to_string(seq_index->column) + " is >>.<<\n";
+          throw(error_string);
         }
         if (seq_index->next != NULL && seq_index->next->token_type == LEFT_PAREN)
         {
-
           l_paren_stack.push(*seq_index->next);
           seq_index = seq_index->next->next;
-          builder->next = build_s_expression();
+          while (seq_index == NULL)
+          {
+            seq_index = cut.get_token_line();
+            // cut.test_print(seq_index);
+          }
+          builder->next = seq_index;
+          build_s_expression();
+          if( find_previous(builder, seq_index)!=NULL)
+            find_previous(builder, seq_index)->next =NULL;
+          seq_index = seq_index->next;
           first_left_paren_index = l_paren_stack.top().column;
           l_paren_stack.pop();
-          if (seq_index == NULL)
+          if (l_paren_stack.empty())
           {
+            seq_index = seq_index->next;
             return s_exp_head;
           }
         }
-        else if (seq_index->next == NULL)
+        else if (seq_index->next->token_type == RIGHT_PAREN || seq_index->next->token_type == DOT)
         {
-          ; //? should be an error?
+          error_string = "ERROR (unexpected token) : atom or '(' expected when token at Line " + to_string(seq_index->next->line) + " Column " + to_string(seq_index->next->column) + " is >>" + seq_index->next->token + "<<\n";
+          throw(error_string); // error occur
         }
         else
         {
-          builder->next = seq_index->next;
+          if (seq_index->next->token_type == NIL)
+          {
+            ;
+          }
+          else
+          {
+            builder = seq_index->next;
+          }
+
+          seq_index = seq_index->next->next;
+          builder->next = NULL;
         }
       }
-      builder = seq_index;
-      seq_index = seq_index->next;
+      else
+      {
+        builder = seq_index;
+        seq_index = seq_index->next;
+      }
     }
 
     return s_exp_head;
   }
-  void update_columon(){
-    int offset = seq_index->column;
+  void update_columon_line()
+  {
+    int offset = last_column;
     tn_ptr walk = seq_index;
-    while (walk!=NULL){
+    while (walk != NULL)
+    {
       walk->column = walk->column - offset;
+      walk->line = 1;
       walk = walk->next;
     }
   }
@@ -785,16 +946,41 @@ public:
 
   tn_ptr build_ins_tree()
   {
+    cout << "> ";
     try
     {
-      seq_index = cut.get_token_line();
-      cut.test_print(seq_index);
+      if (this->token_list_is_empty())
+      {
+        clear();
+        cut.clear();
+        seq_index = cut.get_token_line();
+        // cut.test_print(seq_index);
+      }
+      else
+      {
+        update_columon_line();
+        // cut.test_print(seq_index);
+      }
+      if (seq_index == NULL)
+      {
+        return NULL;
+      }
+
       if (seq_index->token_type != LEFT_PAREN)
       {
         tn_ptr re_ptr = seq_index;
+        if (seq_index->token_type == DOT || seq_index->token_type == RIGHT_PAREN)
+        {
+          error_string = "ERROR (unexpected token) : atom or '(' expected when token at Line " + to_string(seq_index->line) + " Column " + to_string(seq_index->column) + " is >>" + seq_index->token + "<<\n";
+          seq_index = seq_index->next;
+          throw(error_string); // error occur
+        }
         seq_index = seq_index->next;
+        re_ptr->next = NULL;
+        last_column = re_ptr->column;
         return re_ptr;
       }
+
       return build_s_expression();
     }
 
@@ -803,6 +989,7 @@ public:
       if (error_mes.substr(0, 4).compare("ERROR"))
       {
         cout << error_mes << endl;
+        seq_index = NULL;
         return NULL;
       }
       else
@@ -832,18 +1019,39 @@ public:
   void print_tree_struct(tn_ptr head, int indent)
   {
     tn_ptr walk = head;
+    if(walk == NULL ){
+      return;
+    }
+    if( walk->second_level!= NULL){
+      cout << walk->token << " ";
+      print_tree_struct(walk->second_level, indent + 2);
+      walk = walk->next;
+      cout << setw(indent) << "" << walk->token << endl;
+      walk = walk->next;
+    }
+    else{
+      cout << walk->token << endl;
+      walk = walk->next;
+    }
+    
     while (walk != NULL)
     {
-      cout << setw(indent) << "" << walk->token << endl;
-      if (walk->second_level != NULL)
-      {
+      if(walk->second_level!= NULL){
+        cout << setw(indent)<< ""<<walk->token << " ";
         print_tree_struct(walk->second_level, indent + 2);
       }
+      else
+      {
+        cout << setw(indent) << "" << walk->token << endl;
+      }
+      
+      
       walk = walk->next;
     }
 
     return;
   }
+
 }; // class Analyzer
 
 class Generator : Syntax_processor
@@ -882,7 +1090,6 @@ int main()
   while (1)
   {
     anal.print_tree_struct(anal.build_ins_tree(), 0);
-    anal.clear();
   }
 
   return 0;
