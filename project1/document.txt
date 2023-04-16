@@ -4,13 +4,7 @@ Q2:如何運算指令?Intermediate code? parsing tree?
 
 未處理問題
 
-> (1 2 . ; this is a comment
-) ; comment again
-ERROR (unexpected token) : atom or '(' expected when token at Line 2 Column 1 is >>)<<
+潛在威脅 stack 未使用new
 
-> (1 2 . ;
-34 56 ) ; See?
-ERROR (unexpected token) : ')' expected when token at Line 2 Column 4 is >>56<<
 
-行應該由analyzer處理不該由token紀錄
-CUTTER才對
+
