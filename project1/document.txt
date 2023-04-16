@@ -7,4 +7,6 @@ Q2:如何運算指令?Intermediate code? parsing tree?
 潛在威脅 stack 未使用new
 
 
+any thing can be symbol
 
+特殊符號 加減乘除多事

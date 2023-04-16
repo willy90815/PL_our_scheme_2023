@@ -60,6 +60,10 @@ public:
     string str = "";
     int int_num = num;
     str = Turn_to_string( int_num );
+    if ( str.compare( "" ) == 0 ) {
+      str = "0";
+    } // if
+
     if ( num < 0 )
     {
       num = num * -1;
@@ -131,6 +135,7 @@ private:
   string m_error_string;
   stack<Token_node> m_l_paren_stack;
   bool m_quoted;
+  bool m_end_of_line;
   bool Is_digit( char ch )
   {
     if ( '0' <= ch && ch <= '9' )
@@ -168,25 +173,16 @@ private:
 
   bool Is_delimiter( char ch )
   {
-    if ( ch == '+' || ch == '-' || ch == '*' )
+    if ( ch == '(' || ch == ')' || ch == '\'' )
     {
       return true;
     } // if
 
-    if ( ch == '/' || ch == '=' || ch == '<' )
+    if ( ch == '\"' )
     {
       return true;
     } // if
 
-    if ( ch == '>' || ch == '\\' || ch == '&' )
-    {
-      return true;
-    } // if
-
-    if ( ch == '(' || ch == ')' )
-    {
-      return true;
-    } // if
 
     return false;
   } // Is_delimiter()
@@ -205,6 +201,7 @@ private:
   {
     if ( ch == '\0' )
     {
+      m_end_of_line = true;
       return true;
     } // if
 
@@ -259,7 +256,7 @@ private:
 
       ch = Getch();
       while ( Is_white_space( ch ) )
-        ;
+        ch = Getch();
       if ( ch == ')' )
       {
         token_segement->token = "nil";
@@ -323,6 +320,7 @@ private:
     while ( Is_digit( ch ) )
     {
       temp_str += ch;
+      ch = Getch();
     } // while
 
     if ( Is_white_space( ch ) || Is_delimiter( ch ) || Is_end_of_line( ch ) || Is_comment( ch ) )
@@ -330,7 +328,7 @@ private:
 
       token_segement->token = temp_str;
       token_segement->token_type = INT;
-      if ( Is_delimiter( ch ) || Is_end_of_line( ch ) )
+      if ( Is_delimiter( ch ) )
       {
         s_code_column -= 1;
       } // if
@@ -351,6 +349,7 @@ private:
       while ( Is_digit( ch ) )
       {
         temp_str += ch;
+        ch = Getch();
       } // while Getch before condiction
 
       token_segement->token_type = FLOAT;
@@ -358,7 +357,7 @@ private:
       {
         int dot_index = Turn_to_string( To_float( temp_str ) ).find_first_of( ".", 0 );
         token_segement->token = Turn_to_string( To_float( temp_str ) ).substr( 0, dot_index + 4 );
-        if ( Is_delimiter( ch ) || Is_end_of_line( ch ) )
+        if ( Is_delimiter( ch ) )
         {
           s_code_column -= 1;
         } // if
@@ -380,10 +379,10 @@ private:
               && !Is_end_of_line( ch ) && !Is_comment( ch ) )
       {
         temp_str += ch;
-
+        ch = Getch();
       } // while
 
-      if ( Is_delimiter( ch ) || Is_end_of_line( ch ) )
+      if ( Is_delimiter( ch ) )
       {
         s_code_column -= 1;
       } // if
@@ -403,9 +402,10 @@ private:
     while ( !Is_white_space( ch ) && !Is_delimiter( ch ) && !Is_end_of_line( ch ) )
     {
       temp_str += ch;
+      ch = Getch();
     } // while
 
-    if ( Is_delimiter( ch ) || Is_end_of_line( ch ) )
+    if ( Is_delimiter( ch ) )
     {
       s_code_column -= 1;
     } // if
@@ -437,7 +437,7 @@ private:
     } // while
 
     token_segement->token = temp_str;
-    if ( Is_delimiter( ch ) || Is_end_of_line( ch ) )
+    if ( Is_delimiter( ch ) )
     {
       s_code_column -= 1;
     } // if
@@ -488,7 +488,7 @@ private:
     {
       token_segement->token = temp_str;
       token_segement->token_type = DOT;
-      if ( Is_delimiter( ch ) || Is_end_of_line( ch ) )
+      if ( Is_delimiter( ch ) )
       {
         s_code_column -= 1;
       } // if
@@ -512,7 +512,7 @@ private:
       int dot_index = Turn_to_string( To_float( temp_str ) ).find_first_of( ".", 0 );
       token_segement->token = Turn_to_string( To_float( temp_str ) ).substr( 0, dot_index + 4 );
       token_segement->token_type = FLOAT;
-      if ( Is_delimiter( ch ) || Is_end_of_line( ch ) )
+      if ( Is_delimiter( ch ) )
       {
         s_code_column -= 1;
       } // if
@@ -530,13 +530,14 @@ private:
     while ( ! ( Is_delimiter( ch ) || Is_white_space( ch ) || Is_end_of_line( ch ) ) )
     {
       temp_str += ch;
+      ch = Getch();
     } // while
 
     token_segement->token = temp_str;
     token_segement->token_type = SYMBOL;
     token_segement->next = NULL;
     token_segement->second_level = NULL;
-    if ( Is_delimiter( ch ) || Is_end_of_line( ch ) )
+    if ( Is_delimiter( ch ) )
     {
       s_code_column -= 1;
     } // if
@@ -619,27 +620,34 @@ private:
           temp_str += '\n';
         } // if
         
-        if ( ch == 't' )
+        else if ( ch == 't' )
         {
           temp_str += '\t';
         } // if
         
-        if ( ch == '\\' )
+        else if ( ch == '\\' )
         {
           temp_str += '\\';
         } // if
         
-        if ( ch == '\'' )
+        else if ( ch == '\'' )
         {
           temp_str += '\'';
         } // if
         
-        if ( ch == '\"' )
+        else if ( ch == '\"' )
         {
           temp_str += '\"';
         } // if
 
+        else {
+          temp_str += '\\';
+          s_code_column -= 1;
+        } // else
+
       } // else
+
+      ch = Getch();
     } // while
 
     if ( Is_double_quote( ch ) )
@@ -651,7 +659,7 @@ private:
     } // if
 
     m_error_string = "ERROR (no closing quote) : END-OF-LINE encountered at Line " 
-    + Turn_to_string( s_code_line ) + " Column " + Turn_to_string( s_code_column ) + "\n";
+    + Turn_to_string( s_code_line ) + " Column " + Turn_to_string( s_code_column ) ;
     throw ( m_error_string );
     return false;
 
@@ -665,6 +673,13 @@ private:
     token_segement->column = s_code_column + 1;
     token_segement->next = NULL;
     token_segement->second_level = NULL;
+
+    if ( Is_comment( ch ) ) {
+      Skip_comment( ch );
+      token_segement = NULL;
+      return true;
+    } // if 
+
     if ( ch == '#' )
     {
       // what if only #
@@ -674,12 +689,14 @@ private:
       {
         token_segement->token_type = T;
         token_segement->token = "#t";
+        temp_str += ch;
       } // if
 
       else if ( ch == 'f' )
       {
         token_segement->token_type = NIL;
         token_segement->token = "nil";
+        temp_str += ch;
       } // else if
 
       else if ( Is_white_space( ch ) || Is_delimiter( ch ) 
@@ -688,6 +705,7 @@ private:
         token_segement->token_type = SYMBOL;
         token_segement->token = "#"; // maybe we should throw an error here?;
         // try to be symbol
+        return true;
       } // else if
 
       else
@@ -697,7 +715,6 @@ private:
         token_segement->token = temp_str;
       } // else
 
-      temp_str += ch;
       ch = Getch();
       while ( ! ( Is_white_space( ch ) || Is_delimiter( ch ) 
                   || Is_end_of_line( ch ) || Is_comment( ch ) ) )
@@ -705,9 +722,10 @@ private:
         temp_str += ch;
         token_segement->token = temp_str;
         token_segement->token_type = SYMBOL;
+        ch = Getch();
       } // while
 
-      if ( Is_delimiter( ch ) || Is_end_of_line( ch ) )
+      if ( Is_delimiter( ch ) )
       {
         s_code_column -= 1;
       } // if
@@ -722,53 +740,62 @@ private:
 
     if ( ch == '+' || ch == '-' )
     {
-      int temp_index = s_code_column;
       Tn_ptr temp = NULL;
-      Start_with_digit( Getch(  ), temp );
-      if ( temp->token_type == INT || temp->token_type == FLOAT )
-      {
-        if ( ch == '-' )
+      char temp_ch = ch;
+      ch = Getch();
+      if ( Start_with_digit( ch, temp ) ) {
+        if ( temp->token_type == INT || temp->token_type == FLOAT )
         {
-          temp->token.insert( 0, 1, ch );
+          if ( temp_ch == '-' )
+          {
+            temp->token.insert( 0, 1, temp_ch );
+          } // if
+
+          token_segement = temp;
+          return true;
         } // if
 
-        token_segement = temp;
-        return true;
+        else {
+          temp->token.insert( 0, 1, temp_ch );
+          token_segement = temp;
+          return true;
+        } // else 
       } // if
-
-      s_code_column = temp_index;
-      Start_with_dot( Getch(  ), temp );
-      if ( temp->token_type == FLOAT )
-      {
-        if ( ch == '-' )
+      
+      else if ( Start_with_dot( ch, temp ) ) {
+        if ( temp->token_type == FLOAT )
         {
-          temp->token.insert( 0, 1, ch );
+          if ( temp_ch == '-' )
+          {
+            temp->token.insert( 0, 1, temp_ch );
+          } // if
+
+          token_segement = temp;
+          return true;
         } // if
-
-        token_segement = temp;
-        return true;
+        else {
+          temp->token_type = SYMBOL;
+          temp->token.insert( 0, 1, temp_ch );
+          token_segement = temp;
+          return true;
+        } // else
       } // if
-
-      s_code_column = temp_index;
+      else {
+        temp_str = temp_ch;
+      } // else 
+      
     } // if
 
-    if ( Is_comment( ch ) )
-    {
-      Skip_comment( ch );
-      token_segement = NULL;
-      return true;
-    } // if
 
-    temp_str += ch;
     token_segement->token_type = SYMBOL;
-    ch = Getch();
     while ( ! ( Is_white_space( ch ) || Is_delimiter( ch ) 
                 || Is_end_of_line( ch ) || Is_comment( ch ) ) )
     {
       temp_str += ch;
+      ch = Getch();
     } // while
 
-    if ( Is_delimiter( ch ) || Is_end_of_line( ch ) )
+    if ( Is_delimiter( ch ) )
     {
       s_code_column -= 1;
     } // if
@@ -819,6 +846,11 @@ private:
   Tn_ptr Gnerate_token_node(  )
   {
     Tn_ptr return_list = NULL;
+    if ( m_end_of_line ) 
+    {
+      return NULL;
+    } // if
+
     char ch = Skip_white_space( Getch(  ) );
     if ( ch == '\0' )
     {
@@ -914,10 +946,11 @@ public:
   Tn_ptr Get_token_line(  )
   {
     // should I free or delete privious pointer m_source_ins
+    m_end_of_line = false;
     s_code_line++;
     s_code_column = -1;
     m_source_ins = new char[256];
-    if ( cin.eof(  ) )
+    if ( cin.eof( ) )
     {
       m_error_string = "ERROR (no more input) : END-OF-FILE encountered";
       throw ( m_error_string );
@@ -1043,7 +1076,7 @@ private:
     if ( m_seq_index->token_type == DOT )
     {
       m_error_string = "ERROR (unexpected token) : atom or '(' expected when token at Line " 
-      + Turn_to_string( builder->line ) + " Column " + Turn_to_string( builder->column ) + " is >>.<<\n";
+      + Turn_to_string( builder->line ) + " Column " + Turn_to_string( builder->column ) + " is >>.<<";
       throw ( m_error_string ); // error occur
     } // if
 
@@ -1105,7 +1138,7 @@ private:
         { // may not be happen because recursion won't go here
           m_error_string = "ERROR (unexpected token) : atom or '(' expected when token at Line ";
           m_error_string = m_error_string + Turn_to_string( m_seq_index->line ) + " Column " 
-          + Turn_to_string( m_seq_index->column - builder->column ) + " is >> )<<\n"; // error occur
+          + Turn_to_string( m_seq_index->column - builder->column ) + " is >> )<<"; // error occur
           throw ( m_error_string );
         } // if
 
@@ -1124,7 +1157,7 @@ private:
         {
           m_error_string = "ERROR (unexpected token) : ')' expected when token at Line ";
           m_error_string = m_error_string + Turn_to_string( m_seq_index->line ) + " Column " 
-          + Turn_to_string( m_seq_index->column ) + " is >>.<<\n";
+          + Turn_to_string( m_seq_index->column ) + " is >>.<<";
           throw ( m_error_string );
         } // if
 
@@ -1158,7 +1191,7 @@ private:
           m_error_string = "ERROR (unexpected token) : atom or '(' expected when token at Line " 
           + Turn_to_string( m_seq_index->next->line ) 
           + " Column " + Turn_to_string( m_seq_index->next->column ) 
-          + " is >>" + m_seq_index->next->token + "<<\n";
+          + " is >>" + m_seq_index->next->token + "<<";
           throw ( m_error_string ); // error occur
         } // else if
 
@@ -1184,7 +1217,7 @@ private:
           {
             m_error_string = "ERROR (unexpected token) : ')' expected when token at Line " 
             + Turn_to_string( m_seq_index->line ) 
-            + " Column " + Turn_to_string( m_seq_index->column ) + " is >>" + m_seq_index->token + "<<\n";
+            + " Column " + Turn_to_string( m_seq_index->column ) + " is >>" + m_seq_index->token + "<<";
             throw ( m_error_string ); // error occur
           } // if
 
@@ -1238,7 +1271,7 @@ public:
 
   Tn_ptr Build_ins_tree(  )
   {
-    cout << "> ";
+    cout << endl << "> ";
     try
     {
       m_cut.Clear(  );
@@ -1255,10 +1288,10 @@ public:
         // m_cut.Test_print( m_seq_index );
       } // else
 
-      if ( m_seq_index == NULL )
+      while ( m_seq_index == NULL )
       {
-        return NULL;
-      } // if
+        m_seq_index = m_cut.Get_token_line(  );
+      } // while
 
       if ( m_seq_index->token_type != LEFT_PAREN )
       {
@@ -1267,7 +1300,7 @@ public:
         {
           m_error_string = "ERROR (unexpected token) : atom or '(' expected when token at Line " 
           + Turn_to_string( m_seq_index->line ) + " Column " + Turn_to_string( m_seq_index->column ) 
-          + " is >>" + m_seq_index->token + "<<\n";
+          + " is >>" + m_seq_index->token + "<<";
           m_seq_index = m_seq_index->next;
           throw ( m_error_string ); // error occur
         } // if
@@ -1281,15 +1314,16 @@ public:
       return Build_s_expression(  );
     } // try
 
-    catch ( const string error_mes )
+    catch ( string error_mes )
     {
       if ( error_mes.substr( 0, 5 ).compare( "ERROR" ) == 0 )
       {
-        cout << error_mes << endl;
+        cout << error_mes ;
         m_seq_index = NULL;
         if ( error_mes.substr( 6, 15 ).compare( "(no more input)" ) == 0 )
         {
-          throw ( "EXIT" );
+          error_mes = "EXIT";
+          throw ( error_mes );
         } // if
 
         return NULL;
@@ -1408,7 +1442,9 @@ int main(  )
   Cutter m_cut = Cutter(  );
   Analyzer anal = Analyzer(  );
   // instruction cross line will occur segmentation fault
-
+  char* utestnum = new char[256];
+  cin.getline( utestnum, 256 );
+  cout << "Welcome to OurScheme!" << endl;
   while ( 1 )
   {
     try
