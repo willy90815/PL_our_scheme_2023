@@ -24,6 +24,7 @@ struct Token_node
   string token;
   int line;
   int column;
+  int last_column;
   Token_type token_type;
   Token_node *second_level;
   Token_node *next;
@@ -272,6 +273,7 @@ private:
         s_code_column -= 1;
       } // else
 
+      token_segement->last_column = s_code_column + 1;
       return true;
     } // if
 
@@ -287,6 +289,7 @@ private:
       token_segement->token_type = RIGHT_PAREN;
       token_segement->line = s_code_line;
       token_segement->column = s_code_column + 1;
+      token_segement->last_column = s_code_column + 1;
       token_segement->second_level = NULL;
       token_segement->next = NULL;
       if ( m_quoted )
@@ -314,6 +317,7 @@ private:
     token_segement = new Token_node;
     token_segement->line = s_code_line;
     token_segement->column = s_code_column + 1;
+    token_segement->last_column = s_code_column + 1;
     token_segement->second_level = NULL;
     token_segement->next = NULL;
     ch = Getch();
@@ -338,6 +342,7 @@ private:
         Skip_comment( ch );
       } // if
 
+      token_segement->last_column = s_code_column + 1;
       return true;
     } // if
 
@@ -367,6 +372,7 @@ private:
           Skip_comment( ch );
         } // if
 
+        token_segement->last_column = s_code_column + 1;
         return true;
       } // if
 
@@ -394,6 +400,7 @@ private:
 
       token_segement->token = temp_str;
       token_segement->token_type = SYMBOL;
+      token_segement->last_column = s_code_column + 1;
       return true;
     } // else if
 
@@ -412,6 +419,7 @@ private:
 
     token_segement->token = temp_str;
     token_segement->token_type = SYMBOL;
+    token_segement->last_column = s_code_column + 1;
     return true;
   } // Start_with_digit()
 
@@ -428,6 +436,7 @@ private:
     token_segement->token_type = SYMBOL;
     token_segement->line = s_code_line;
     token_segement->column = s_code_column + 1;
+    token_segement->last_column = s_code_column + 1;
     token_segement->next = NULL;
     token_segement->second_level = NULL;
     while ( ! ( Is_delimiter( ch ) || Is_white_space( ch ) || Is_end_of_line( ch ) ) )
@@ -458,12 +467,7 @@ private:
       token_segement->token_type = T;
     } // if
 
-    if ( token_segement->token.compare( "f" ) == 0 )
-    {
-      token_segement->token = "nil";
-      token_segement->token_type = NIL;
-    } // if
-
+    token_segement->last_column = s_code_column + 1;
     return true;
   } // Start_with_letter()
 
@@ -480,6 +484,7 @@ private:
     token_segement = new Token_node;
     token_segement->line = s_code_line;
     token_segement->column = s_code_column + 1;
+    token_segement->last_column = s_code_column + 1;
     token_segement->next = NULL;
     token_segement->second_level = NULL;
     temp_str += ch;
@@ -498,6 +503,7 @@ private:
         Skip_comment( ch );
       } // if
 
+      token_segement->last_column = s_code_column + 1;
       return true;
     } // if
 
@@ -522,6 +528,7 @@ private:
         Skip_comment( ch );
       } // if
 
+      token_segement->last_column = s_code_column + 1;
       return true;
     } // if
 
@@ -547,6 +554,7 @@ private:
       Skip_comment( ch );
     } // if
 
+    token_segement->last_column = s_code_column + 1;
     return true;
   } // Start_with_dot()
 
@@ -563,12 +571,14 @@ private:
     token_segement->token_type = LEFT_PAREN;
     token_segement->line = s_code_line;
     token_segement->column = s_code_column + 1;
+    token_segement->last_column = s_code_column + 1;
     token_segement->second_level = NULL;
     token_segement->next = new Token_node;
     token_segement->next->token = "quote";
     token_segement->next->token_type = QUOTE;
     token_segement->next->line = s_code_line;
     token_segement->next->column = s_code_column + 1;
+    token_segement->next->last_column = s_code_column + 1;
     token_segement->next->second_level = NULL;
     token_segement->next->next = NULL;
     m_quoted = true;
@@ -582,6 +592,7 @@ private:
     target->next->token_type = RIGHT_PAREN;
     target->next->line = s_code_line;
     target->next->column = s_code_column + 1;
+    target->next->last_column = s_code_column + 1;
     target->next->second_level = NULL;
     target->next->next = NULL;
     return target->next;
@@ -600,6 +611,7 @@ private:
     token_segement = new Token_node;
     token_segement->line = s_code_line;
     token_segement->column = s_code_column + 1;
+    token_segement->last_column = s_code_column + 1;
     token_segement->next = NULL;
     token_segement->second_level = NULL;
     temp_str += ch;
@@ -655,11 +667,12 @@ private:
       temp_str += ch;
       token_segement->token = temp_str;
       token_segement->token_type = STRING;
+      token_segement->last_column = s_code_column + 1;
       return true;
     } // if
 
     m_error_string = "ERROR (no closing quote) : END-OF-LINE encountered at Line " 
-    + Turn_to_string( s_code_line ) + " Column " + Turn_to_string( s_code_column ) ;
+    + Turn_to_string( s_code_line ) + " Column " + Turn_to_string( s_code_column+1 ) ;
     throw ( m_error_string );
     return false;
 
@@ -677,6 +690,7 @@ private:
     if ( Is_comment( ch ) ) {
       Skip_comment( ch );
       token_segement = NULL;
+      token_segement->last_column = s_code_column + 1;
       return true;
     } // if 
 
@@ -705,6 +719,7 @@ private:
         token_segement->token_type = SYMBOL;
         token_segement->token = "#"; // maybe we should throw an error here?;
         // try to be symbol
+        token_segement->last_column = s_code_column + 1;
         return true;
       } // else if
 
@@ -735,6 +750,7 @@ private:
         Skip_comment( ch );
       } // if
 
+      token_segement->last_column = s_code_column + 1;
       return true;
     } // if start with #
 
@@ -752,12 +768,14 @@ private:
           } // if
 
           token_segement = temp;
+          token_segement->last_column = s_code_column + 1;
           return true;
         } // if
 
         else {
           temp->token.insert( 0, 1, temp_ch );
           token_segement = temp;
+          token_segement->last_column = s_code_column + 1;
           return true;
         } // else 
       } // if
@@ -771,12 +789,14 @@ private:
           } // if
 
           token_segement = temp;
+          token_segement->last_column = s_code_column + 1;
           return true;
         } // if
         else {
           temp->token_type = SYMBOL;
           temp->token.insert( 0, 1, temp_ch );
           token_segement = temp;
+          token_segement->last_column = s_code_column + 1;
           return true;
         } // else
       } // if
@@ -806,6 +826,7 @@ private:
     } // if
 
     token_segement->token = temp_str;
+    token_segement->last_column = s_code_column + 1;
     return true; // /////////////////////////////////
   } // Start_with_other_sign()
 
@@ -980,20 +1001,36 @@ public:
       } // if
     } // while
 
+    if ( walker != NULL && walker->token_type == LEFT_PAREN ) {
+      while ( walker->next  == NULL ) {
+        walker->next = Get_token_line();
+      } // while
+
+      if ( walker->next->token_type == RIGHT_PAREN ) {
+        walker->token_type = NIL;
+        walker->token = "nil";
+        walker->next = walker->next->next;
+      } // if
+    } // if
+
+    // Test_print( result_head );
     return result_head;
   } // Get_token_line()
 
   void Test_print( Tn_ptr head )
   {
     Tn_ptr walk = head;
-    cout << setw( 7 ) << "line" << setw( 7 ) << "column" << setw( 10 ) << "token";
+    cout << endl << setw( 7 ) << "line" << setw( 7 ) << "column" << setw( 10 ) << "token";
     cout << setw( 15 ) << "token type" << endl;
+    cout << "------------------------------" << endl;
     while ( walk != NULL )
     {
       cout << setw( 7 ) << walk->line << setw( 7 ) << walk->column << setw( 10 ) << walk->token;
       cout << setw( 15 ) << walk->token_type << endl;
       walk = walk->next;
     } // while
+
+    cout << endl << "------------------------------" << endl;
   } // Test_print()
 
   void Set_code_line( int line )
@@ -1068,7 +1105,6 @@ private:
     while ( m_seq_index == NULL )
     {
       m_seq_index = m_cut.Get_token_line(  );
-      // m_cut.Test_print( m_seq_index );
     } // while
 
     Tn_ptr builder = m_seq_index;
@@ -1104,7 +1140,6 @@ private:
         {
           builder->next = m_seq_index;
         } // if
-        // m_cut.Test_print( m_seq_index );
       } // while
 
       if ( m_seq_index->token_type == LEFT_PAREN )
@@ -1126,7 +1161,7 @@ private:
         if ( m_l_paren_stack.empty(  ) )
         {
           builder->next = NULL;
-          m_last_column = builder->column;
+          m_last_column = builder->column + builder->token.length()-1;
           return s_exp_head;
         } // if
 
@@ -1168,7 +1203,6 @@ private:
           while ( m_seq_index == NULL )
           {
             m_seq_index = m_cut.Get_token_line(  );
-            // m_cut.Test_print( m_seq_index );
           } // while
 
           builder->next = m_seq_index;
@@ -1239,7 +1273,7 @@ private:
 
   void Update_columon_line(  )
   {
-    int offset = m_last_column;
+    int offset = m_last_column ;
     Tn_ptr walk = m_seq_index;
     while ( walk != NULL )
     {
@@ -1279,13 +1313,11 @@ public:
       if ( Token_list_is_empty(  ) )
       {
         m_seq_index = m_cut.Get_token_line(  );
-        // m_cut.Test_print( m_seq_index );
       } // if
 
       else
       {
         Update_columon_line(  );
-        // m_cut.Test_print( m_seq_index );
       } // else
 
       while ( m_seq_index == NULL )
@@ -1307,7 +1339,7 @@ public:
 
         m_seq_index = m_seq_index->next;
         re_ptr->next = NULL;
-        m_last_column = re_ptr->column;
+        m_last_column = re_ptr->column + re_ptr->token.length()-1;
         return re_ptr;
       } // if
 
@@ -1325,6 +1357,10 @@ public:
           error_mes = "EXIT";
           throw ( error_mes );
         } // if
+
+        else {
+          cout << endl;
+        } // else
 
         return NULL;
       } // if

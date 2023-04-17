@@ -10,3 +10,5 @@ Q2:如何運算指令?Intermediate code? parsing tree?
 any thing can be symbol
 
 特殊符號 加減乘除多事
+
+white space is delimiter
