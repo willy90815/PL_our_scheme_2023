@@ -12,3 +12,6 @@ any thing can be symbol
 特殊符號 加減乘除多事
 
 white space is delimiter
+quit read with line i should read with charactar
+
+寫程式是要站在巨人的肩膀上，多加善用前人寫好的
