@@ -934,7 +934,7 @@ ERROR (no closing quote) : END-OF-LINE encountered at Line 4 Column 21
 
 > (23 56 "How do you do?
 ERROR (no closing quote) : END-OF-LINE encountered at Line 1 Column 23
-
+e
 > "
 ERROR (no closing quote) : END-OF-LINE encountered at Line 1 Column 2
 
